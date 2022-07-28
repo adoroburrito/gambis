@@ -61,6 +61,7 @@ const scanAndDump = async (
   );
 
   console.log(`Dump was successful. Path: ${finalLocation}`);
+  process.exit(0);
 }
 
 const main = async (): Promise<void> => {
@@ -74,50 +75,54 @@ const main = async (): Promise<void> => {
     }
   });
 
-  const optionName = 'rootOption';
-  const optionChoices = {
-    scanAndDump: "Scan and dump a table to JSON",
-    exit: "Exit"
-  };
-  inquirer.prompt([
-    {
-      type: 'list',
-      name: optionName,
-      message: 'What do you want to do?',
-      choices: [...Object.values(optionChoices)]
-    }
-  ]).then((answers: any) => {
-    if(answers[optionName] === optionChoices.exit){
+  try {
+    const optionName = 'rootOption';
+    const optionChoices = {
+      scanAndDump: "Scan and dump a table to JSON",
+      exit: "Exit"
+    };
+    const optionAnswers = await inquirer.prompt([
+      {
+        type: 'list',
+        name: optionName,
+        message: 'What do you want to do?',
+        choices: [...Object.values(optionChoices)]
+      }
+    ]);
+
+    if(optionAnswers[optionName] === optionChoices.exit){
       console.log("Bye bye");
-      process.exit(1);
+      process.exit(0);
     }
 
-    if(answers[optionName] === optionChoices.scanAndDump){
-      inquirer.prompt([
+    if(optionAnswers[optionName] === optionChoices.scanAndDump){
+      const answers = await inquirer.prompt([
         {
           type: 'input',
           name: 'tableName',
-          message: 'Please enter the desired table name.'
+          message: 'Please enter the desired table name:'
         },
         {
           type: 'input',
           name: 'location',
-          message: 'Please enter the desired target location. (Blank = home directory)'
+          message: 'Please enter the desired target location (Blank = home directory):'
         },
-      ]).then(async (answers: any) => {
-        const tableName = answers["tableName"];
-        const location = answers["location"];
-        await scanAndDump(dynamo, { tableName, location });
-      })
+      ]);
+
+      const tableName = answers["tableName"];
+      const location = answers["location"];
+      await scanAndDump(dynamo, { tableName, location });
+      process.exit(0);
     }
-  }).catch((error: any) => {
+  } catch(error: any){
     console.log({error});
     if (error.isTtyError) {
       console.log("Prompt couldn't be rendered in the current environment");
     } else {
       console.log("Something else went wrong");
     }
-  })
+  }
+
 
 }
 
